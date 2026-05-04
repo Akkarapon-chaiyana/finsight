@@ -2,11 +2,14 @@ const express  = require('express');
 const fs        = require('fs');
 const path      = require('path');
 const cron      = require('node-cron');
+const multer    = require('multer');
 const cookieParser = require('cookie-parser');
 const { authorize, fetchDBSEmails } = require('./fetchEmails');
+const { parsePDF, mergeExpenses }   = require('./parseBankStatement');
 
-const app  = express();
-const PORT = 5174;
+const app    = express();
+const PORT   = 5174;
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 const EXPENSES_PATH = path.join(__dirname, 'public', 'expenses.json');
 
 // ── Config (change these) ─────────────────────────────────────────────────────
@@ -64,6 +67,17 @@ app.get('/api/refresh', requireAuth, async (req, res) => {
     const auth = await authorize();
     const expenses = await fetchDBSEmails(auth);
     res.json({ success: true, count: expenses.length });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/import-statement', requireAuth, upload.single('pdf'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
+    const txns = await parsePDF(req.file.buffer);
+    const { total, added } = mergeExpenses(txns);
+    res.json({ success: true, added, total });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
