@@ -734,16 +734,16 @@ async function resetData(){
 }
 
 async function importStatement(input) {
-  const file = input.files[0];
-  if (!file) return;
+  const files = Array.from(input.files);
+  if (!files.length) return;
   input.value = '';
   const btn  = document.getElementById('upload-btn');
   const icon = document.getElementById('upload-icon');
   const lbl  = document.getElementById('upload-lbl');
-  btn.disabled = true; icon.textContent = '⏳'; lbl.textContent = ' Uploading…';
+  btn.disabled = true; icon.textContent = '⏳'; lbl.textContent = ` Uploading ${files.length} file${files.length>1?'s':''}…`;
   try {
     const fd = new FormData();
-    for (const f of input.files) fd.append('pdf', f);
+    for (const f of files) fd.append('pdf', f);
     const res  = await fetch('/api/import-statement', { method: 'POST', body: fd });
     const data = await res.json();
     if (data.success) {
