@@ -373,16 +373,16 @@ function renderDaily(exp){
   const budgetColor=pct<70?'#10b981':pct<100?'#f59e0b':'#ef4444';
   const remainColor=remaining>=0?'#10b981':'#ef4444';
 
-  // Chart last 14 days
-  const ck=[...keys].reverse().slice(-14);
+  // Chart last 21 days
+  const ck=[...keys].reverse().slice(-21);
   const cl=ck.map(k=>new Date(k).toLocaleDateString('en-SG',{day:'2-digit',month:'short'}));
   const cd=ck.map(k=>grp[k].reduce((s,e)=>s+e.amount,0));
 
-  // Accordion
-  const accHtmlStr=keys.slice(0,30).map((k,i)=>{
+  // Accordion — last 21 days, all collapsed by default
+  const accHtmlStr=keys.slice(0,21).map((k)=>{
     const d=new Date(k);
     const lbl=d.toLocaleDateString('en-SG',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-    return accHtml(k,grp[k],i===0,'',lbl,'');
+    return accHtml(k,grp[k],false,'',lbl,'');
   }).join('');
 
   const {labels:dl,data:dd,colors:dc}=typeBk(exp);
@@ -411,12 +411,12 @@ function renderDaily(exp){
     </div>
 
     <div class="row2">
-      <div class="panel"><div class="ph"><div class="pt">Last 14 Days</div><span class="pb">Bar</span></div><div class="cw"><canvas id="cd-bar"></canvas></div></div>
+      <div class="panel"><div class="ph"><div class="pt">Last 21 Days</div><span class="pb">Bar</span></div><div class="cw"><canvas id="cd-bar"></canvas></div></div>
       <div class="panel"><div class="ph"><div class="pt">By Type</div><span class="pb">Donut</span></div><div class="cw-sm"><canvas id="cd-donut"></canvas></div></div>
     </div>
     <div class="row2">
       <div class="panel"><div class="ph"><div class="pt">Transactions by Day</div><span class="pb">${keys.length} days</span></div><div class="acc">${accHtmlStr||'<div class="empty">No data</div>'}</div></div>
-      <div class="panel"><div class="ph"><div class="pt">Top Merchants</div><span class="pb">All time</span></div><div class="ml">${topMerchHtml(exp,7)}</div></div>
+      <div class="panel"><div class="ph"><div class="pt">Top Merchants</div><span class="pb">All time</span></div><div class="ml">${topMerchHtml(exp,10)}</div></div>
     </div>`;
 
   barChart('cd-bar',cl,cd);
