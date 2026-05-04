@@ -70,8 +70,14 @@ function parseDate(dateStr, year) {
 }
 
 function cleanMerchant(raw) {
+  // Truncate PayLah! and similar wallet descriptions
+  raw = raw.replace(/PayLah!\s*Wallet.*/i, 'PayLah!');
+  raw = raw.replace(/GrabPay\s*Wallet.*/i, 'GrabPay');
   // Remove "(UEN ending XXXX)", "(MOBILE ending XXXX)" suffixes
-  return raw.replace(/\s*\((UEN|MOBILE|A\/C)\s+ending\s+\S+\)/gi, '').trim();
+  raw = raw.replace(/\s*\((UEN|MOBILE|A\/C)\s+ending\s+\S+\)/gi, '');
+  // Truncate at 40 chars
+  raw = raw.trim();
+  return raw.length > 40 ? raw.slice(0, 38).trimEnd() + '…' : raw;
 }
 
 function parseDBSEmail(rawBody) {
@@ -124,44 +130,45 @@ function extractBody(payload) {
 async function fetchDBSEmails(auth) {
   const gmail = google.gmail({ version: 'v1', auth });
 
-  const res = await gmail.users.messages.list({
-    userId: 'me',
-    q: 'from:(dbs.com OR dbsbank.com OR noreply@dbs.com) newer_than:365d',
-    maxResults: 500
-  });
-
-  const messages = res.data.messages || [];
-  console.log(`Found ${messages.length} DBS emails`);
-
-  const expenses = [];
-
-  for (const msg of messages) {
-    const detail = await gmail.users.messages.get({
-      userId: 'me',
-      id: msg.id,
-      format: 'full'
-    });
-
-    const body = extractBody(detail.data.payload);
-    const parsed = parseDBSEmail(body);
-
-    if (parsed) {
-      // Use Gmail's internalDate (ms since epoch) for accurate timestamp
-      const date = new Date(parseInt(detail.data.internalDate)).toISOString();
-      expenses.push({ ...parsed, date, id: msg.id });
-    }
-  }
-
-  // Deduplicate by email ID
+  // Load existing expenses
   const existing = fs.existsSync(EXPENSES_PATH)
     ? JSON.parse(fs.readFileSync(EXPENSES_PATH))
     : [];
 
   const existingIds = new Set(existing.map(e => e.id));
-  const newExpenses = expenses.filter(e => !existingIds.has(e.id));
-  const merged = [...existing, ...newExpenses];
 
-  // Sort by date descending
+  // Only fetch emails newer than the most recent one we have
+  let query = 'from:(dbs.com OR dbsbank.com OR noreply@dbs.com)';
+  if (existing.length > 0) {
+    const latestMs = Math.max(...existing.map(e => new Date(e.date).getTime()));
+    const afterSec = Math.floor(latestMs / 1000);
+    query += ` after:${afterSec}`;
+    console.log(`[fetch] Incremental — fetching emails after ${new Date(latestMs).toLocaleDateString()}`);
+  } else {
+    query += ' newer_than:365d';
+    console.log('[fetch] First run — fetching up to 365 days of emails');
+  }
+
+  const res = await gmail.users.messages.list({ userId: 'me', q: query, maxResults: 500 });
+  const messages = res.data.messages || [];
+  console.log(`Found ${messages.length} new DBS emails`);
+
+  const newExpenses = [];
+
+  for (const msg of messages) {
+    if (existingIds.has(msg.id)) continue;
+
+    const detail = await gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'full' });
+    const body = extractBody(detail.data.payload);
+    const parsed = parseDBSEmail(body);
+
+    if (parsed) {
+      const date = new Date(parseInt(detail.data.internalDate)).toISOString();
+      newExpenses.push({ ...parsed, date, id: msg.id });
+    }
+  }
+
+  const merged = [...existing, ...newExpenses];
   merged.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   fs.writeFileSync(EXPENSES_PATH, JSON.stringify(merged, null, 2));
