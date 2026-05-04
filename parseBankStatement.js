@@ -116,6 +116,13 @@ async function parsePDF(buffer) {
 
 // ── Merge into expenses.json ──────────────────────────────────────────────────
 function mergeExpenses(newItems, replace = false) {
+  // Always exclude current month — statements only cover complete past months
+  const curMonth = new Date().toISOString().slice(0, 7);
+  const filtered = newItems.filter(e => e.date.slice(0, 7) !== curMonth);
+  if (filtered.length < newItems.length)
+    console.log(`  Skipped ${newItems.length - filtered.length} entries from current month (${curMonth})`);
+  newItems = filtered;
+
   const existing = (!replace && fs.existsSync(EXPENSES_PATH))
     ? JSON.parse(fs.readFileSync(EXPENSES_PATH))
     : [];

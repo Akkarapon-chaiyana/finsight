@@ -129,8 +129,9 @@
     .mbar-val{font-size:0.75rem;font-weight:700;width:72px;text-align:right;flex-shrink:0;}
 
     /* ── TOP MERCHANTS ── */
-    .ml{display:flex;flex-direction:column;gap:10px;}
-    .mi{display:flex;align-items:center;gap:10px;}
+    .ml{display:flex;flex-direction:column;gap:6px;}
+    .mi{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;cursor:pointer;transition:background .12s;}
+    .mi:hover{background:#f9fafb;}
     .mrk{width:24px;height:24px;border-radius:6px;font-size:0.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
     .mrk.g0{background:#fef3c7;color:#d97706;}
     .mrk.g1{background:#f3f4f6;color:#6b7280;}
@@ -139,6 +140,22 @@
     .mn{font-size:0.82rem;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .ms{font-size:0.68rem;color:var(--sub);}
     .mv{font-size:0.85rem;font-weight:700;color:var(--red);flex-shrink:0;}
+    .m-chev{font-size:0.6rem;color:var(--sub);transition:transform .2s;flex-shrink:0;}
+    .merch-item.mopen .m-chev{transform:rotate(180deg);}
+    .merch-bd{display:none;border-top:1px solid var(--border);margin-top:4px;}
+    .merch-item.mopen .merch-bd{display:block;}
+    /* ── MONTH BREAKDOWN ── */
+    .mbd-item{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px;}
+    .mbd-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:#fff;transition:background .12s;}
+    .mbd-hd:hover{background:#f9fafb;}
+    .mbd-title{font-weight:700;font-size:0.9rem;}
+    .mbd-meta{font-size:0.75rem;color:var(--sub);display:flex;align-items:center;gap:8px;}
+    .mbd-chev{font-size:0.65rem;color:var(--sub);transition:transform .2s;}
+    .mbd-item.open .mbd-chev{transform:rotate(180deg);}
+    .mbd-body{display:none;padding:16px;border-top:1px solid var(--border);}
+    .mbd-item.open .mbd-body{display:block;}
+    .mbd-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    @media(max-width:640px){.mbd-2col{grid-template-columns:1fr;}}
 
     /* ── SPENDIQ ── */
     .iq-score{display:flex;align-items:center;gap:24px;}
@@ -236,6 +253,9 @@
       <span id="upload-icon">⬆</span><span id="upload-lbl"> Upload Statement</span>
     </button>
     <input type="file" id="upload-input" accept=".pdf" onchange="importStatement(this)">
+    <button class="logout-btn" onclick="resetData()" style="background:transparent;border-color:rgba(255,60,60,0.15);color:rgba(255,100,100,0.5);">
+      <span>🗑</span><span>Reset All Data</span>
+    </button>
     <a class="logout-btn" href="/logout">
       <span>⎋</span><span>Sign Out</span>
     </a>
@@ -320,7 +340,7 @@ function typeBk(exp){
 
 function merchantMap(exp){
   const m={};
-  exp.forEach(e=>{if(!m[e.merchant])m[e.merchant]={total:0,count:0};m[e.merchant].total+=e.amount;m[e.merchant].count++;});
+  exp.forEach(e=>{if(!m[e.merchant])m[e.merchant]={total:0,count:0,txns:[]};m[e.merchant].total+=e.amount;m[e.merchant].count++;m[e.merchant].txns.push(e);});
   return m;
 }
 
@@ -331,9 +351,27 @@ function top10Spend(m,n=10){
   return Object.entries(m).sort((a,b)=>b[1].total-a[1].total).slice(0,n);
 }
 
-function topMerchHtml(exp,n){
+function topMerchAccHtml(exp,n){
   const m=merchantMap(exp);
-  return top10Spend(m,n).map(([name,s],i)=>`
+  return top10Spend(m,n).map(([name,s],i)=>{
+    const rows=s.txns.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(e=>`<tr>
+      <td class="td-t">${new Date(e.date).toLocaleDateString('en-SG',{day:'2-digit',month:'short',year:'numeric'})}</td>
+      <td class="td-m">${e.merchant}</td><td>${pill(e.type)}</td>
+      <td class="td-a">${S(e.amount)}</td></tr>`).join('');
+    return `<div class="merch-item">
+      <div class="mi" onclick="this.closest('.merch-item').classList.toggle('mopen')">
+        <div class="mrk ${rkCls(i)}">${i+1}</div>
+        <div style="flex:1;min-width:0"><div class="mn">${name}</div><div class="ms">${s.count} visits · ${S(s.total)}</div></div>
+        <div class="mv">${S(s.total)}</div><span class="m-chev">▼</span>
+      </div>
+      <div class="merch-bd"><table><thead><tr><th>Date</th><th>Merchant</th><th>Type</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody>${rows}</tbody></table></div></div>`;
+  }).join('');
+}
+
+function topFreqHtml(exp,n){
+  const m=merchantMap(exp);
+  return Object.entries(m).sort((a,b)=>b[1].count-a[1].count).slice(0,n).map(([name,s],i)=>`
     <div class="mi">
       <div class="mrk ${rkCls(i)}">${i+1}</div>
       <div style="flex:1;min-width:0"><div class="mn">${name}</div><div class="ms">${s.count} visits</div></div>
@@ -418,7 +456,7 @@ function renderDaily(exp){
     </div>
     <div class="row2">
       <div class="panel"><div class="ph"><div class="pt">Transactions by Day</div><span class="pb">${keys.length} days</span></div><div class="acc">${accHtmlStr||'<div class="empty">No data</div>'}</div></div>
-      <div class="panel"><div class="ph"><div class="pt">Top Merchants</div><span class="pb">All time</span></div><div class="ml">${topMerchHtml(exp,10)}</div></div>
+      <div class="panel"><div class="ph"><div class="pt">Top 25 Merchants</div><span class="pb">All time · click to expand</span></div><div class="ml">${topMerchAccHtml(exp,25)}</div></div>
     </div>`;
 
   barChart('cd-bar',cl,cd);
@@ -440,11 +478,11 @@ function renderWeekly(exp){
   const cl=ck.map(k=>{const[yw,wn]=k.split('-W');const[y,m]=yw.split('-');return new Date(+y,+m-1,1).toLocaleDateString('en-SG',{month:'short'})+' W'+wn;});
   const cd=ck.map(k=>grp[k].reduce((s,e)=>s+e.amount,0));
 
-  const accStr=keys.map((k,i)=>{
+  const accStr=keys.map((k)=>{
     const[yw,wn]=k.split('-W');const[y,m]=yw.split('-');const wn2=parseInt(wn);
     const ranges={1:'1–7',2:'8–14',3:'15–21',4:'22–end'};
     const mn=new Date(+y,+m-1,1).toLocaleDateString('en-SG',{month:'long',year:'numeric'});
-    return accHtml(k,grp[k],i===0,'w'+wn2,`Week ${wn2} — ${ranges[wn2]}`,mn);
+    return accHtml(k,grp[k],false,'w'+wn2,`Week ${wn2} — ${ranges[wn2]}`,mn);
   }).join('');
 
   const{labels:dl,data:dd,colors:dc}=typeBk(exp);
@@ -453,8 +491,8 @@ function renderWeekly(exp){
     <div class="kpi-row">
       <div class="kpi"><div class="kpi-ico">📆</div><div class="kpi-lbl">This Week</div><div class="kpi-val">${S(thisTotal)}</div><div class="kpi-sub">${thisExp.length} transactions</div></div>
       <div class="kpi a"><div class="kpi-ico">📈</div><div class="kpi-lbl">Weekly Avg</div><div class="kpi-val">${S(avg)}</div><div class="kpi-sub">Excl. current · ${past.length} wks</div></div>
-      <div class="kpi g"><div class="kpi-ico">🗓</div><div class="kpi-lbl">Weeks Tracked</div><div class="kpi-val">${keys.length}</div><div class="kpi-sub">${new Set(keys.map(k=>k.slice(0,7))).size} months</div></div>
-      <div class="kpi b"><div class="kpi-ico">🏆</div><div class="kpi-lbl">Highest Week</div><div class="kpi-val">${S(Math.max(...keys.map(k=>grp[k].reduce((s,e)=>s+e.amount,0))))}</div><div class="kpi-sub">Peak</div></div>
+      <div class="kpi g"><div class="kpi-ico">🏆</div><div class="kpi-lbl">Highest Week</div><div class="kpi-val">${S(Math.max(...keys.map(k=>grp[k].reduce((s,e)=>s+e.amount,0))))}</div><div class="kpi-sub">Peak spending</div></div>
+      <div class="kpi b"><div class="kpi-ico">💳</div><div class="kpi-lbl">All Time</div><div class="kpi-val">${S(exp.reduce((s,e)=>s+e.amount,0))}</div><div class="kpi-sub">${exp.length} transactions</div></div>
     </div>
     <div class="row2">
       <div class="panel"><div class="ph"><div class="pt">Weekly Spending</div><span class="pb">Last 12 weeks</span></div><div class="cw"><canvas id="cw-bar"></canvas></div></div>
@@ -495,10 +533,10 @@ function renderMonthly(exp){
 
   document.getElementById('view-monthly').innerHTML=`
     <div class="kpi-row">
-      <div class="kpi"><div class="kpi-ico">🗓</div><div class="kpi-lbl">This Month</div><div class="kpi-val">${S(thisTotal)}</div><div class="kpi-sub">${thisExp.length} transactions</div></div>
-      <div class="kpi a"><div class="kpi-ico">📊</div><div class="kpi-lbl">Monthly Avg</div><div class="kpi-val">${S(avg)}</div><div class="kpi-sub">Excl. current · ${past.length} mo</div></div>
-      <div class="kpi g"><div class="kpi-ico">📉</div><div class="kpi-lbl">Lowest Month</div><div class="kpi-val">${S(Math.min(...past.map(k=>grp[k].reduce((s,e)=>s+e.amount,0))))}</div><div class="kpi-sub">Best so far</div></div>
-      <div class="kpi b"><div class="kpi-ico">📈</div><div class="kpi-lbl">Highest Month</div><div class="kpi-val">${S(maxV)}</div><div class="kpi-sub">Peak</div></div>
+      <div class="kpi"><div class="kpi-ico">📊</div><div class="kpi-lbl">Monthly Avg</div><div class="kpi-val">${S(avg)}</div><div class="kpi-sub">Excl. current · ${past.length} mo</div></div>
+      <div class="kpi a"><div class="kpi-ico">📉</div><div class="kpi-lbl">Lowest Month</div><div class="kpi-val">${S(Math.min(...past.map(k=>grp[k].reduce((s,e)=>s+e.amount,0))))}</div><div class="kpi-sub">Best so far</div></div>
+      <div class="kpi g"><div class="kpi-ico">📈</div><div class="kpi-lbl">Highest Month</div><div class="kpi-val">${S(maxV)}</div><div class="kpi-sub">Peak spending</div></div>
+      <div class="kpi b"><div class="kpi-ico">💳</div><div class="kpi-lbl">All Time</div><div class="kpi-val">${S(exp.reduce((s,e)=>s+e.amount,0))}</div><div class="kpi-sub">${exp.length} transactions</div></div>
     </div>
     <div class="row2">
       <div class="panel"><div class="ph"><div class="pt">Monthly Trend</div><span class="pb">Last 12 months</span></div><div class="cw"><canvas id="cm-bar"></canvas></div></div>
@@ -506,7 +544,30 @@ function renderMonthly(exp){
     </div>
     <div class="row2e">
       <div class="panel"><div class="ph"><div class="pt">Month Comparison</div></div><div class="mbar">${bars}</div></div>
-      <div class="panel"><div class="ph"><div class="pt">Top Merchants</div><span class="pb">All time</span></div><div class="ml">${topMerchHtml(exp,7)}</div></div>
+      <div class="panel"><div class="ph"><div class="pt">Top 15 Merchants</div><span class="pb">All time · click to expand</span></div><div class="ml">${topMerchAccHtml(exp,15)}</div></div>
+    </div>
+    <div class="panel" style="margin-bottom:16px">
+      <div class="ph"><div class="pt">Monthly Breakdown</div><span class="pb">Frequency &amp; spend per month</span></div>
+      ${past.map(k=>{
+        const[y,mo]=k.split('-');
+        const lbl=new Date(+y,+mo-1,1).toLocaleDateString('en-SG',{month:'long',year:'numeric'});
+        const mExp=grp[k];
+        const mTotal=mExp.reduce((s,e)=>s+e.amount,0);
+        const freqH=topFreqHtml(mExp,5);
+        const spendH=topMerchAccHtml(mExp,5);
+        return`<div class="mbd-item">
+          <div class="mbd-hd" onclick="this.parentElement.classList.toggle('open')">
+            <div><div class="mbd-title">${lbl}</div><div class="mbd-meta">${mExp.length} transactions · ${S(mTotal)}</div></div>
+            <span class="mbd-chev">▼</span>
+          </div>
+          <div class="mbd-body">
+            <div class="mbd-2col">
+              <div><div class="ph" style="margin-bottom:10px"><div class="pt" style="font-size:0.78rem">Top by Frequency</div></div><div class="ml">${freqH}</div></div>
+              <div><div class="ph" style="margin-bottom:10px"><div class="pt" style="font-size:0.78rem">Top by Spend · click to expand</div></div><div class="ml">${spendH}</div></div>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
     </div>`;
 
   barChart('cm-bar',cl,cd);
@@ -686,6 +747,16 @@ async function loadExpenses(){
   }catch(e){document.getElementById('view-daily').innerHTML='<div class="empty">Could not load expenses.json</div>';}
 }
 
+
+async function resetData(){
+  if(!confirm('Delete ALL transaction data? This cannot be undone.')) return;
+  try{
+    const res=await fetch('/api/reset',{method:'POST'});
+    const d=await res.json();
+    if(d.success) await loadExpenses();
+    else alert('Reset failed: '+d.error);
+  }catch(e){alert('Reset failed');}
+}
 
 async function importStatement(input) {
   const file = input.files[0];

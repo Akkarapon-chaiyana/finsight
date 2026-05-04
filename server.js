@@ -72,6 +72,15 @@ app.get('/api/refresh', requireAuth, async (req, res) => {
   }
 });
 
+app.post('/api/reset', requireAuth, (req, res) => {
+  try {
+    fs.writeFileSync(EXPENSES_PATH, '[]');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post('/api/import-statement', requireAuth, upload.single('pdf'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
