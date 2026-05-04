@@ -421,11 +421,13 @@ function renderDaily(exp){
 
   const {labels:dl,data:dd,colors:dc}=typeBk(exp);
 
-  const used21=ck.reduce((s,k)=>s+grp[k].reduce((a,e)=>a+e.amount,0),0);
+  const today=new Date().toISOString().slice(0,10);
+  const todaySpent=(grp[today]||[]).reduce((s,e)=>s+e.amount,0);
+  const todayCount=(grp[today]||[]).length;
 
   document.getElementById('view-daily').innerHTML=`
     <div class="kpi-row">
-      <div class="kpi"><div class="kpi-ico">💸</div><div class="kpi-lbl">Daily Used</div><div class="kpi-val">${S(used21)}</div><div class="kpi-sub">Last 21 days</div></div>
+      <div class="kpi"><div class="kpi-ico">💸</div><div class="kpi-lbl">Daily Used</div><div class="kpi-val">${S(todaySpent)}</div><div class="kpi-sub">${todayCount} tx today</div></div>
       <div class="kpi a"><div class="kpi-ico">📊</div><div class="kpi-lbl">Daily Avg</div><div class="kpi-val">${S(avg)}</div><div class="kpi-sub">${pastKeys.length} days</div></div>
       <div class="kpi g"><div class="kpi-ico">🧾</div><div class="kpi-lbl">Total Tx</div><div class="kpi-val">${exp.length}</div><div class="kpi-sub">All time</div></div>
       <div class="kpi b"><div class="kpi-ico">💳</div><div class="kpi-lbl">All Time</div><div class="kpi-val">${S(exp.reduce((s,e)=>s+e.amount,0))}</div><div class="kpi-sub">Since first tx</div></div>
