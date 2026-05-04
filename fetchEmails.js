@@ -75,9 +75,9 @@ function cleanMerchant(raw) {
   raw = raw.replace(/GrabPay\s*Wallet.*/i, 'GrabPay');
   // Remove "(UEN ending XXXX)", "(MOBILE ending XXXX)" suffixes
   raw = raw.replace(/\s*\((UEN|MOBILE|A\/C)\s+ending\s+\S+\)/gi, '');
-  // Truncate at 40 chars
+  // Truncate at 25 chars
   raw = raw.trim();
-  return raw.length > 40 ? raw.slice(0, 38).trimEnd() + '…' : raw;
+  return raw.length > 25 ? raw.slice(0, 25).trimEnd() + '…' : raw;
 }
 
 function parseDBSEmail(rawBody) {
