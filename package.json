@@ -8,7 +8,9 @@
     "fetch": "node fetchEmails.js"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "express": "^4.18.2",
+    "express-session": "^1.19.0",
     "googleapis": "^140.0.0",
     "node-cron": "^3.0.3"
   }

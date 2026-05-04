@@ -1,8 +1,5 @@
 {
   "version": 2,
-  "builds": [{ "src": "public/**", "use": "@vercel/static" }],
-  "routes": [
-    { "src": "/expenses.json", "dest": "/public/expenses.json" },
-    { "src": "/(.*)",          "dest": "/public/index.html" }
-  ]
+  "builds": [{ "src": "server.js", "use": "@vercel/node" }],
+  "routes": [{ "src": "/(.*)", "dest": "/server.js" }]
 }

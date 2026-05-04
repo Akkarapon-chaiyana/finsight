@@ -35,9 +35,11 @@
     .nav-item.active{background:var(--red);color:#fff;}
     .nav-icon{font-size:.95rem;width:18px;text-align:center;}
     .sidebar-foot{margin-top:auto;padding:0 20px;}
-    .sync-btn{width:100%;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 12px;cursor:pointer;color:rgba(255,255,255,0.65);font-size:0.8rem;font-weight:500;transition:all .15s;margin-bottom:12px;}
+    .sync-btn{width:100%;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 12px;cursor:pointer;color:rgba(255,255,255,0.65);font-size:0.8rem;font-weight:500;transition:all .15s;margin-bottom:8px;}
     .sync-btn:hover{background:rgba(255,255,255,0.13);color:#fff;}
     .sync-btn:disabled{opacity:.4;cursor:not-allowed;}
+    .logout-btn{width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:1px solid rgba(255,255,255,0.08);border-radius:9px;padding:9px 12px;cursor:pointer;color:rgba(255,255,255,0.35);font-size:0.8rem;font-weight:500;transition:all .15s;margin-bottom:12px;text-decoration:none;}
+    .logout-btn:hover{background:rgba(255,0,0,0.1);border-color:rgba(255,80,80,0.3);color:rgba(255,120,120,0.9);}
     .foot-txt{color:rgba(255,255,255,0.28);font-size:0.68rem;line-height:1.6;}
 
     /* ── TOPBAR ── */
@@ -232,6 +234,9 @@
     <button class="sync-btn" id="sync-btn" onclick="refreshData()">
       <span id="sync-icon">↻</span><span id="sync-lbl"> Sync Gmail</span>
     </button>
+    <a class="logout-btn" href="/logout">
+      <span>⎋</span><span>Sign Out</span>
+    </a>
     <div class="foot-txt">
       <div id="last-updated">—</div>
       <div>DBS Account ···3501</div>

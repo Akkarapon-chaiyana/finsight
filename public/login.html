@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Finsight — Login</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#1a0000 0%,#2d0001 50%,#1a0000 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .card{background:#fff;border-radius:20px;padding:40px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+    .logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+    .logo-icon{width:42px;height:42px;background:#cc0001;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;color:#fff;}
+    .logo-text{font-size:1.3rem;font-weight:800;color:#111;}
+    .logo-sub{font-size:0.7rem;color:#9ca3af;margin-top:1px;}
+    h2{font-size:1.1rem;font-weight:700;color:#111;margin-bottom:4px;}
+    .sub{font-size:0.82rem;color:#6b7280;margin-bottom:28px;}
+    label{font-size:0.75rem;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;}
+    input{width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:0.9rem;font-family:'Inter',sans-serif;outline:none;transition:border .15s;margin-bottom:16px;}
+    input:focus{border-color:#cc0001;}
+    button{width:100%;padding:13px;background:#cc0001;color:#fff;border:none;border-radius:10px;font-size:0.9rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;transition:background .15s;margin-top:4px;}
+    button:hover{background:#aa0001;}
+    .error{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:0.82rem;margin-bottom:16px;display:none;}
+    .error.show{display:block;}
+    .footer{text-align:center;margin-top:24px;font-size:0.72rem;color:#d1d5db;}
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">F</div>
+    <div><div class="logo-text">Finsight</div><div class="logo-sub">DBS Personal Finance</div></div>
+  </div>
+  <h2>Welcome back</h2>
+  <p class="sub">Sign in to view your expenses</p>
+  <div class="error" id="err">Incorrect username or password.</div>
+  <form method="POST" action="/login">
+    <label>Username</label>
+    <input type="text" name="username" autocomplete="username" required autofocus/>
+    <label>Password</label>
+    <input type="password" name="password" autocomplete="current-password" required/>
+    <button type="submit">Sign In</button>
+  </form>
+  <div class="footer">Private · Local only</div>
+</div>
+<script>
+  const p = new URLSearchParams(window.location.search);
+  if(p.get('error')) document.getElementById('err').classList.add('show');
+</script>
+</body>
+</html>

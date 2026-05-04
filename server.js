@@ -1,24 +1,65 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const cron = require('node-cron');
+const express  = require('express');
+const fs        = require('fs');
+const path      = require('path');
+const cron      = require('node-cron');
+const cookieParser = require('cookie-parser');
 const { authorize, fetchDBSEmails } = require('./fetchEmails');
 
-const app = express();
+const app  = express();
 const PORT = 5174;
 const EXPENSES_PATH = path.join(__dirname, 'public', 'expenses.json');
 
-app.use(express.static(path.join(__dirname, 'public')));
+// ── Config (change these) ─────────────────────────────────────────────────────
+const USERNAME      = process.env.USERNAME      || 'tony';
+const PASSWORD      = process.env.PASSWORD      || 'finsight2026';
+const COOKIE_SECRET = process.env.COOKIE_SECRET || 'finsight-secret-change-me';
 
-app.get('/api/expenses', (req, res) => {
-  if (!fs.existsSync(EXPENSES_PATH)) {
-    return res.json([]);
-  }
-  const data = JSON.parse(fs.readFileSync(EXPENSES_PATH));
-  res.json(data);
+// ── Middleware ────────────────────────────────────────────────────────────────
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.use(cookieParser(COOKIE_SECRET));
+
+// ── Auth guard ────────────────────────────────────────────────────────────────
+function requireAuth(req, res, next) {
+  if (req.signedCookies && req.signedCookies.auth === 'ok') return next();
+  res.redirect('/login');
+}
+
+// ── Login / logout ────────────────────────────────────────────────────────────
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-app.get('/api/refresh', async (req, res) => {
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === USERNAME && password === PASSWORD) {
+    res.cookie('auth', 'ok', {
+      signed: true,
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000   // 7 days
+    });
+    res.redirect('/');
+  } else {
+    res.redirect('/login?error=1');
+  }
+});
+
+app.get('/logout', (req, res) => {
+  res.clearCookie('auth');
+  res.redirect('/login');
+});
+
+// ── Protected routes ──────────────────────────────────────────────────────────
+app.get('/', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/expenses.json', requireAuth, (req, res) => {
+  if (!fs.existsSync(EXPENSES_PATH)) return res.json([]);
+  res.sendFile(EXPENSES_PATH);
+});
+
+app.get('/api/refresh', requireAuth, async (req, res) => {
   try {
     const auth = await authorize();
     const expenses = await fetchDBSEmails(auth);
@@ -28,20 +69,24 @@ app.get('/api/refresh', async (req, res) => {
   }
 });
 
-// Auto-refresh every day at 6am
-cron.schedule('0 6 * * *', async () => {
-  console.log('[cron] Running daily email fetch...');
-  try {
-    const auth = await authorize();
-    await fetchDBSEmails(auth);
-    console.log('[cron] Done.');
-  } catch (err) {
-    console.error('[cron] Error:', err.message);
-  }
-});
+// ── Auto-refresh every day at 6am (local only) ────────────────────────────────
+if (require.main === module) {
+  cron.schedule('0 6 * * *', async () => {
+    console.log('[cron] Daily fetch...');
+    try {
+      const auth = await authorize();
+      await fetchDBSEmails(auth);
+      console.log('[cron] Done.');
+    } catch (err) {
+      console.error('[cron] Error:', err.message);
+    }
+  });
 
-app.listen(PORT, () => {
-  console.log(`Expense tracker running at http://localhost:${PORT}`);
-  const { exec } = require('child_process');
-  exec(`open http://localhost:${PORT}`);
-});
+  app.listen(PORT, () => {
+    console.log(`Finsight running at http://localhost:${PORT}`);
+    require('child_process').exec(`open http://localhost:${PORT}`);
+  });
+} else {
+  // Vercel serverless export
+  module.exports = app;
+}
