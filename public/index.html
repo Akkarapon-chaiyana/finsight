@@ -232,9 +232,6 @@
     <div class="nav-item"        id="nav-insights"onclick="switchTab('insights')"><span class="nav-icon">💡</span> SpendIQ</div>
   </div>
   <div class="sidebar-foot">
-    <button class="sync-btn" id="sync-btn" onclick="refreshData()">
-      <span id="sync-icon">↻</span><span id="sync-lbl"> Sync Gmail</span>
-    </button>
     <button class="sync-btn" id="upload-btn" onclick="document.getElementById('upload-input').click()">
       <span id="upload-icon">⬆</span><span id="upload-lbl"> Upload Statement</span>
     </button>
@@ -684,22 +681,11 @@ async function loadExpenses(){
     all=await res.json();
     const now=new Date().toLocaleString('en-SG',{timeZone:'Asia/Singapore',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
     document.getElementById('last-updated').textContent='Updated '+now;
-    if(!all.length){document.getElementById('view-daily').innerHTML='<div class="empty">No transactions yet — sync Gmail first.</div>';return;}
+    if(!all.length){document.getElementById('view-daily').innerHTML='<div class="empty">No transactions yet — upload a bank statement.</div>';return;}
     renderAll(all);
   }catch(e){document.getElementById('view-daily').innerHTML='<div class="empty">Could not load expenses.json</div>';}
 }
 
-async function refreshData(){
-  const btn=document.getElementById('sync-btn'),icon=document.getElementById('sync-icon'),lbl=document.getElementById('sync-lbl');
-  btn.disabled=true;icon.textContent='⏳';lbl.textContent=' Syncing…';
-  try{
-    const res=await fetch('/api/refresh');
-    const d=await res.json();
-    if(d.success){await loadExpenses();icon.textContent='✓';lbl.textContent=' Done';}
-    else{icon.textContent='✗';lbl.textContent=' Error';}
-  }catch{icon.textContent='✗';lbl.textContent=' Error';}
-  setTimeout(()=>{btn.disabled=false;icon.textContent='↻';lbl.textContent=' Sync Gmail';},2500);
-}
 
 async function importStatement(input) {
   const file = input.files[0];
