@@ -252,7 +252,7 @@
     <button class="sync-btn" id="upload-btn" onclick="document.getElementById('upload-input').click()">
       <span id="upload-icon">⬆</span><span id="upload-lbl"> Upload Statement</span>
     </button>
-    <input type="file" id="upload-input" accept=".pdf" onchange="importStatement(this)">
+    <input type="file" id="upload-input" accept=".pdf" multiple onchange="importStatement(this)">
     <button class="logout-btn" onclick="resetData()" style="background:transparent;border-color:rgba(255,60,60,0.15);color:rgba(255,100,100,0.5);">
       <span>🗑</span><span>Reset All Data</span>
     </button>
@@ -401,17 +401,8 @@ function renderDaily(exp){
   const grp={};
   exp.forEach(e=>{const k=new Date(e.date).toISOString().slice(0,10);if(!grp[k])grp[k]=[];grp[k].push(e);});
   const keys=Object.keys(grp).sort().reverse().slice(0,60);
-  const today=new Date().toISOString().slice(0,10);
-  const todayExp=grp[today]||[];
-  const todaySpent=todayExp.reduce((s,e)=>s+e.amount,0);
-  const pastKeys=keys.filter(k=>k!==today);
+  const pastKeys=keys;
   const avg=pastKeys.length?pastKeys.reduce((s,k)=>s+grp[k].reduce((a,e)=>a+e.amount,0),0)/pastKeys.length:0;
-
-  // Budget
-  const remaining=DAILY_BUDGET-todaySpent;
-  const pct=Math.min(todaySpent/DAILY_BUDGET*100,100);
-  const budgetColor=pct<70?'#10b981':pct<100?'#f59e0b':'#ef4444';
-  const remainColor=remaining>=0?'#10b981':'#ef4444';
 
   // Chart last 21 days
   const ck=[...keys].reverse().slice(-21);
@@ -428,24 +419,8 @@ function renderDaily(exp){
   const {labels:dl,data:dd,colors:dc}=typeBk(exp);
 
   document.getElementById('view-daily').innerHTML=`
-    <div class="budget-card">
-      <div class="budget-left">
-        <div class="budget-title">Today's Budget — S$${DAILY_BUDGET}</div>
-        <div class="budget-nums">
-          <span class="budget-spent">${S(todaySpent)}</span>
-          <span class="budget-limit">/ S$${DAILY_BUDGET}.00</span>
-        </div>
-        <div class="budget-track"><div class="budget-fill" style="width:${pct}%;background:${budgetColor}"></div></div>
-      </div>
-      <div class="budget-right">
-        <div class="budget-remain-lbl">${remaining>=0?'Can still spend':'Over budget'}</div>
-        <div class="budget-remain-val" style="color:${remainColor}">${remaining>=0?S(remaining):S(Math.abs(remaining))}</div>
-      </div>
-    </div>
-
     <div class="kpi-row">
-      <div class="kpi"><div class="kpi-ico">📅</div><div class="kpi-lbl">Today</div><div class="kpi-val">${S(todaySpent)}</div><div class="kpi-sub">${todayExp.length} transaction${todayExp.length!==1?'s':''}</div></div>
-      <div class="kpi a"><div class="kpi-ico">📊</div><div class="kpi-lbl">Daily Avg</div><div class="kpi-val">${S(avg)}</div><div class="kpi-sub">Excl. today · ${pastKeys.length} days</div></div>
+      <div class="kpi a"><div class="kpi-ico">📊</div><div class="kpi-lbl">Daily Avg</div><div class="kpi-val">${S(avg)}</div><div class="kpi-sub">${pastKeys.length} days</div></div>
       <div class="kpi g"><div class="kpi-ico">🧾</div><div class="kpi-lbl">Total Tx</div><div class="kpi-val">${exp.length}</div><div class="kpi-sub">All time</div></div>
       <div class="kpi b"><div class="kpi-ico">💳</div><div class="kpi-lbl">All Time</div><div class="kpi-val">${S(exp.reduce((s,e)=>s+e.amount,0))}</div><div class="kpi-sub">Since first tx</div></div>
     </div>
@@ -768,7 +743,7 @@ async function importStatement(input) {
   btn.disabled = true; icon.textContent = '⏳'; lbl.textContent = ' Uploading…';
   try {
     const fd = new FormData();
-    fd.append('pdf', file);
+    for (const f of input.files) fd.append('pdf', f);
     const res  = await fetch('/api/import-statement', { method: 'POST', body: fd });
     const data = await res.json();
     if (data.success) {
