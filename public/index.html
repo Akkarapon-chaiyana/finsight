@@ -531,7 +531,7 @@ function renderMonthly(exp){
     </div>
     <div class="panel" style="margin-bottom:16px">
       <div class="ph"><div class="pt">Monthly Breakdown</div><span class="pb">Frequency &amp; spend per month</span></div>
-      ${past.map(k=>{
+      ${keys.map(k=>{
         const[y,mo]=k.split('-');
         const lbl=new Date(+y,+mo-1,1).toLocaleDateString('en-SG',{month:'long',year:'numeric'});
         const mExp=grp[k];
