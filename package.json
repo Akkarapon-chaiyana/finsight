@@ -1,0 +1,15 @@
+{
+  "name": "dbs-expense-tracker",
+  "version": "1.0.0",
+  "description": "DBS expense tracker from Gmail",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "fetch": "node fetchEmails.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "googleapis": "^140.0.0",
+    "node-cron": "^3.0.3"
+  }
+}

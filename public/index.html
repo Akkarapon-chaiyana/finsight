@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Finsight</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    :root {
+      --red:#cc0001; --red-bg:rgba(204,0,1,0.08);
+      --ink:#111827; --sub:#6b7280; --border:#e5e7eb;
+      --bg:#f3f4f8; --card:#fff;
+      --r:14px; --sh:0 2px 10px rgba(0,0,0,0.06);
+      --budget:25;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+
+    /* ── LAYOUT ── */
+    .sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:linear-gradient(160deg,#1a0000,#2d0001 60%,#1a0000);display:flex;flex-direction:column;padding:24px 0;z-index:100;}
+    .main{margin-left:220px;min-height:100vh;}
+    .topbar{background:var(--card);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .content{padding:24px 28px;max-width:1200px;}
+
+    /* ── SIDEBAR ── */
+    .logo{padding:0 20px 28px;display:flex;align-items:center;gap:10px;}
+    .logo-icon{width:34px;height:34px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;color:#fff;}
+    .logo-text{color:#fff;font-size:1.1rem;font-weight:700;}
+    .logo-sub{color:rgba(255,255,255,0.35);font-size:0.65rem;}
+    .nav{padding:0 10px;display:flex;flex-direction:column;gap:2px;}
+    .nav-lbl{color:rgba(255,255,255,0.28);font-size:0.6rem;text-transform:uppercase;letter-spacing:.1em;padding:0 10px;margin:8px 0 4px;}
+    .nav-item{display:flex;align-items:center;gap:9px;padding:10px 10px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,0.5);font-size:0.85rem;font-weight:500;transition:all .15s;user-select:none;}
+    .nav-item:hover{background:rgba(255,255,255,0.07);color:#fff;}
+    .nav-item.active{background:var(--red);color:#fff;}
+    .nav-icon{font-size:.95rem;width:18px;text-align:center;}
+    .sidebar-foot{margin-top:auto;padding:0 20px;}
+    .sync-btn{width:100%;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 12px;cursor:pointer;color:rgba(255,255,255,0.65);font-size:0.8rem;font-weight:500;transition:all .15s;margin-bottom:12px;}
+    .sync-btn:hover{background:rgba(255,255,255,0.13);color:#fff;}
+    .sync-btn:disabled{opacity:.4;cursor:not-allowed;}
+    .foot-txt{color:rgba(255,255,255,0.28);font-size:0.68rem;line-height:1.6;}
+
+    /* ── TOPBAR ── */
+    .tb-title{font-size:1rem;font-weight:700;}
+    .tb-sub{font-size:0.75rem;color:var(--sub);margin-top:1px;}
+    .chip{background:var(--red-bg);color:var(--red);padding:5px 12px;border-radius:20px;font-size:0.75rem;font-weight:600;}
+
+    /* ── KPI ── */
+    .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+    .kpi{background:var(--card);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);position:relative;overflow:hidden;}
+    .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--red);}
+    .kpi.a::before{background:linear-gradient(90deg,#f59e0b,#f97316);}
+    .kpi.g::before{background:linear-gradient(90deg,#10b981,#059669);}
+    .kpi.b::before{background:linear-gradient(90deg,#3b82f6,#6366f1);}
+    .kpi-lbl{font-size:0.68rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+    .kpi-val{font-size:1.6rem;font-weight:800;color:var(--ink);line-height:1;margin-bottom:4px;}
+    .kpi-sub{font-size:0.72rem;color:var(--sub);}
+    .kpi-ico{position:absolute;right:16px;top:16px;font-size:1.4rem;opacity:.1;}
+
+    /* ── BUDGET BAR ── */
+    .budget-card{background:var(--card);border-radius:var(--r);padding:20px 24px;box-shadow:var(--sh);margin-bottom:18px;display:flex;align-items:center;gap:24px;}
+    .budget-left{flex:1;}
+    .budget-title{font-size:0.7rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+    .budget-nums{display:flex;align-items:baseline;gap:6px;margin-bottom:10px;}
+    .budget-spent{font-size:1.8rem;font-weight:800;color:var(--ink);}
+    .budget-limit{font-size:0.9rem;color:var(--sub);}
+    .budget-track{height:10px;background:#f3f4f6;border-radius:99px;overflow:hidden;}
+    .budget-fill{height:100%;border-radius:99px;transition:width .4s ease;}
+    .budget-right{text-align:right;flex-shrink:0;}
+    .budget-remain-lbl{font-size:0.68rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+    .budget-remain-val{font-size:1.4rem;font-weight:800;}
+
+    /* ── PANELS ── */
+    .row2{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;}
+    .row2e{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+    .panel{background:var(--card);border-radius:var(--r);padding:20px;box-shadow:var(--sh);}
+    .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    .pt{font-size:0.85rem;font-weight:700;}
+    .pb{font-size:0.65rem;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--red-bg);color:var(--red);}
+    .pb.blue{background:rgba(59,130,246,.08);color:#3b82f6;}
+    .cw{position:relative;height:210px;}
+    .cw-sm{position:relative;height:170px;}
+
+    /* ── ACCORDION ── */
+    .acc{display:flex;flex-direction:column;gap:6px;}
+    .acc-item{border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+    .acc-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);cursor:pointer;user-select:none;transition:background .12s;}
+    .acc-hd:hover{background:#fafafa;}
+    .acc-lft{display:flex;align-items:center;gap:10px;}
+    .wk-badge{color:#fff;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:5px;min-width:54px;text-align:center;}
+    .wk-badge.w1{background:var(--red);}
+    .wk-badge.w2{background:#f97316;}
+    .wk-badge.w3{background:#10b981;}
+    .wk-badge.w4{background:#3b82f6;}
+    .acc-lbl{font-size:0.85rem;font-weight:600;}
+    .acc-rng{font-size:0.72rem;color:var(--sub);}
+    .acc-rgt{display:flex;align-items:center;gap:12px;}
+    .acc-cnt{font-size:0.72rem;color:var(--sub);}
+    .acc-tot{font-size:0.9rem;font-weight:700;color:var(--red);}
+    .acc-chev{font-size:0.65rem;color:var(--sub);transition:transform .2s;}
+    .acc-hd.open .acc-chev{transform:rotate(180deg);}
+    .acc-bd{display:none;border-top:1px solid var(--border);}
+    .acc-bd.open{display:block;}
+
+    /* ── TABLE ── */
+    table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+    thead th{text-align:left;padding:9px 14px;background:#f9fafb;color:var(--sub);font-size:0.67rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);}
+    tbody tr{border-bottom:1px solid #f5f5f5;transition:background .1s;}
+    tbody tr:last-child{border-bottom:none;}
+    tbody tr:hover{background:#f9fafb;}
+    tbody td{padding:11px 14px;}
+    .td-t{color:var(--sub);font-size:0.78rem;white-space:nowrap;}
+    .td-m{font-weight:600;}
+    .td-a{font-weight:700;color:var(--red);text-align:right;}
+    .pill{font-size:0.65rem;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--red-bg);color:var(--red);}
+    .pill.pn{background:rgba(59,130,246,.09);color:#3b82f6;}
+    .pill.cd{background:rgba(16,185,129,.09);color:#10b981;}
+
+    /* ── MONTH BAR ── */
+    .mbar{display:flex;flex-direction:column;gap:8px;}
+    .mbar-row{display:flex;align-items:center;gap:10px;}
+    .mbar-lbl{font-size:0.75rem;font-weight:500;width:90px;flex-shrink:0;}
+    .mbar-track{flex:1;background:#f3f4f6;border-radius:5px;height:9px;overflow:hidden;}
+    .mbar-fill{height:100%;background:linear-gradient(90deg,var(--red),#ff4444);border-radius:5px;transition:width .5s ease;}
+    .mbar-val{font-size:0.75rem;font-weight:700;width:72px;text-align:right;flex-shrink:0;}
+
+    /* ── TOP MERCHANTS ── */
+    .ml{display:flex;flex-direction:column;gap:10px;}
+    .mi{display:flex;align-items:center;gap:10px;}
+    .mrk{width:24px;height:24px;border-radius:6px;font-size:0.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .mrk.g0{background:#fef3c7;color:#d97706;}
+    .mrk.g1{background:#f3f4f6;color:#6b7280;}
+    .mrk.g2{background:#fef2f2;color:#dc2626;}
+    .mrk.gx{background:#f9fafb;color:#9ca3af;}
+    .mn{font-size:0.82rem;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ms{font-size:0.68rem;color:var(--sub);}
+    .mv{font-size:0.85rem;font-weight:700;color:var(--red);flex-shrink:0;}
+
+    /* ── SPENDIQ ── */
+    .iq-score{display:flex;align-items:center;gap:24px;}
+    .ring-wrap{flex-shrink:0;}
+    .ring-wrap svg{transform:rotate(-90deg);}
+    .ring-lbl{position:relative;}
+    .ring-num{font-size:2rem;font-weight:800;line-height:1;}
+    .ring-tag{font-size:0.68rem;font-weight:600;color:var(--sub);}
+    .factors{display:flex;flex-direction:column;gap:8px;flex:1;}
+    .factor-row{display:flex;align-items:center;gap:8px;}
+    .factor-lbl{font-size:0.72rem;color:var(--sub);width:90px;flex-shrink:0;}
+    .factor-track{flex:1;background:#f3f4f6;border-radius:4px;height:6px;overflow:hidden;}
+    .factor-fill{height:100%;border-radius:4px;}
+    .factor-val{font-size:0.7rem;font-weight:700;width:28px;text-align:right;flex-shrink:0;}
+
+    .hbar{display:flex;flex-direction:column;gap:9px;}
+    .hbar-row{display:flex;align-items:center;gap:8px;}
+    .hbar-lbl{font-size:0.75rem;color:var(--sub);width:72px;flex-shrink:0;}
+    .hbar-track{flex:1;background:#f3f4f6;border-radius:5px;height:8px;overflow:hidden;}
+    .hbar-fill{height:100%;border-radius:5px;}
+    .hbar-val{font-size:0.72rem;font-weight:600;width:64px;text-align:right;flex-shrink:0;}
+
+    .spike-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);}
+    .spike-row:last-child{border-bottom:none;}
+    .spike-date{font-size:0.8rem;font-weight:600;}
+    .spike-merch{font-size:0.7rem;color:var(--sub);}
+    .spike-amt{font-size:0.88rem;font-weight:700;color:var(--red);}
+
+    .t10-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);}
+    .t10-row:last-child{border-bottom:none;}
+    .t10-rk{width:22px;height:22px;border-radius:5px;font-size:0.65rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .t10-rk.g0{background:#fef3c7;color:#d97706;}
+    .t10-rk.g1{background:#f3f4f6;color:#6b7280;}
+    .t10-rk.g2{background:#fef2f2;color:#dc2626;}
+    .t10-rk.gx{background:#f9fafb;color:#9ca3af;}
+    .t10-info{flex:1;min-width:0;}
+    .t10-name{font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .t10-sub{font-size:0.68rem;color:var(--sub);}
+    .t10-val{font-size:0.85rem;font-weight:700;color:var(--red);flex-shrink:0;}
+
+    .tip-row{display:flex;align-items:flex-start;gap:12px;padding:12px;background:#f9fafb;border-radius:10px;border-left:3px solid #10b981;margin-bottom:8px;}
+    .tip-ico{font-size:1.1rem;flex-shrink:0;margin-top:1px;}
+    .tip-title{font-size:0.82rem;font-weight:700;margin-bottom:2px;}
+    .tip-sub{font-size:0.74rem;color:var(--sub);}
+    .tip-save{font-size:0.75rem;font-weight:700;color:#10b981;margin-top:3px;}
+
+    .trend-up{color:#ef4444;font-weight:600;}
+    .trend-dn{color:#10b981;font-weight:600;}
+    .scope{font-size:0.63rem;font-weight:600;background:#eff6ff;color:#2563eb;padding:2px 7px;border-radius:5px;}
+
+    .hidden{display:none;}
+    .empty{text-align:center;padding:40px;color:var(--sub);font-size:0.85rem;}
+
+    /* ── MOBILE ── */
+    @media(max-width:768px){
+      .sidebar{transform:translateX(-220px);transition:transform .25s;}
+      .sidebar.open{transform:translateX(0);}
+      .main{margin-left:0;}
+      .hamburger{display:flex;}
+      .kpi-row{grid-template-columns:1fr 1fr;}
+      .row2,.row2e,.row3{grid-template-columns:1fr;}
+      .content{padding:16px;}
+      .topbar{padding:12px 16px;}
+      .budget-card{flex-direction:column;gap:12px;}
+      .budget-right{text-align:left;}
+      .iq-score{flex-direction:column;align-items:flex-start;}
+    }
+    @media(max-width:480px){
+      .kpi-row{grid-template-columns:1fr 1fr;}
+      .kpi-val{font-size:1.3rem;}
+    }
+    .hamburger{display:none;align-items:center;justify-content:center;width:36px;height:36px;background:var(--red-bg);border:none;border-radius:8px;cursor:pointer;font-size:1.1rem;}
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99;}
+    .overlay.show{display:block;}
+  </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">F</div>
+    <div><div class="logo-text">Finsight</div><div class="logo-sub">DBS Personal Finance</div></div>
+  </div>
+  <div class="nav">
+    <div class="nav-lbl">Views</div>
+    <div class="nav-item active" id="nav-daily"   onclick="switchTab('daily')">  <span class="nav-icon">📅</span> Daily</div>
+    <div class="nav-item"        id="nav-weekly"  onclick="switchTab('weekly')"> <span class="nav-icon">📆</span> Weekly</div>
+    <div class="nav-item"        id="nav-monthly" onclick="switchTab('monthly')"><span class="nav-icon">🗓</span> Monthly</div>
+    <div class="nav-item"        id="nav-insights"onclick="switchTab('insights')"><span class="nav-icon">💡</span> SpendIQ</div>
+  </div>
+  <div class="sidebar-foot">
+    <button class="sync-btn" id="sync-btn" onclick="refreshData()">
+      <span id="sync-icon">↻</span><span id="sync-lbl"> Sync Gmail</span>
+    </button>
+    <div class="foot-txt">
+      <div id="last-updated">—</div>
+      <div>DBS Account ···3501</div>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="hamburger" onclick="openSidebar()">☰</button>
+      <div><div class="tb-title" id="tb-title">Daily</div><div class="tb-sub" id="tb-sub">Today's spending</div></div>
+    </div>
+    <span class="chip">NETS · PayNow</span>
+  </div>
+  <div class="content">
+    <div id="view-daily"></div>
+    <div id="view-weekly"  class="hidden"></div>
+    <div id="view-monthly" class="hidden"></div>
+    <div id="view-insights"class="hidden"></div>
+  </div>
+</div>
+
+<script>
+const DAILY_BUDGET = 25;
+let all = [], charts = {}, tab = 'daily';
+const TABS = {
+  daily:   {title:'Daily',   sub:"Today's spending & budget"},
+  weekly:  {title:'Weekly',  sub:'Week-by-week breakdown'},
+  monthly: {title:'Monthly', sub:'Month-by-month summary'},
+  insights:{title:'SpendIQ', sub:'Smart spending insights'},
+};
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+const S = v => 'S$'+Number(v).toFixed(2);
+const mkey = d => { const x=new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`; };
+const wom  = d => { const day=new Date(d).getDate(); return day<=7?1:day<=14?2:day<=21?3:4; };
+const wkey = d => { const x=new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-W${wom(d)}`; };
+const pill = t => `<span class="pill${t==='PayNow'?' pn':t==='Card'?' cd':''}">${t}</span>`;
+const rkCls= i => i===0?'g0':i===1?'g1':i===2?'g2':'gx';
+
+function kc(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+
+function barChart(id,labels,data){
+  kc(id);
+  const el=document.getElementById(id); if(!el)return;
+  const ctx=el.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,0,210);
+  g.addColorStop(0,'rgba(204,0,1,0.45)'); g.addColorStop(1,'rgba(204,0,1,0.03)');
+  charts[id]=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data,backgroundColor:g,borderColor:'#cc0001',borderWidth:1.5,borderRadius:7,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+S(c.raw)}}},
+    scales:{y:{beginAtZero:true,grid:{color:'#f3f4f6'},ticks:{callback:v=>'S$'+v,font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+}
+
+function donut(id,labels,data,colors){
+  kc(id);
+  const el=document.getElementById(id); if(!el)return;
+  charts[id]=new Chart(el,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0,hoverOffset:5}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:10,boxWidth:8,usePointStyle:true}},tooltip:{callbacks:{label:c=>' '+S(c.raw)}}}}});
+}
+
+function lineChart(id,labels,data,color){
+  kc(id);
+  const el=document.getElementById(id); if(!el)return;
+  const ctx=el.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,0,210);
+  g.addColorStop(0,color.replace(')',',0.3)').replace('rgb','rgba'));
+  g.addColorStop(1,color.replace(')',',0.02)').replace('rgb','rgba'));
+  charts[id]=new Chart(ctx,{type:'line',data:{labels,datasets:[{data,borderColor:color,backgroundColor:g,borderWidth:2,pointRadius:0,tension:.4,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+S(c.raw)}}},
+    scales:{y:{beginAtZero:true,grid:{color:'#f3f4f6'},ticks:{callback:v=>'S$'+v,font:{size:10}}},x:{grid:{display:false},ticks:{maxTicksLimit:8,font:{size:10}}}}}});
+}
+
+function typeBk(exp){
+  const m={}; exp.forEach(e=>{m[e.type]=(m[e.type]||0)+e.amount;});
+  const entries=Object.entries(m);
+  return{labels:entries.map(e=>e[0]),data:entries.map(e=>e[1]),colors:['#cc0001','#3b82f6','#10b981','#f97316','#8b5cf6'].slice(0,entries.length)};
+}
+
+function merchantMap(exp){
+  const m={};
+  exp.forEach(e=>{if(!m[e.merchant])m[e.merchant]={total:0,count:0};m[e.merchant].total+=e.amount;m[e.merchant].count++;});
+  return m;
+}
+
+function top10Freq(m,n=10){
+  return Object.entries(m).sort((a,b)=>b[1].count-a[1].count).slice(0,n);
+}
+function top10Spend(m,n=10){
+  return Object.entries(m).sort((a,b)=>b[1].total-a[1].total).slice(0,n);
+}
+
+function topMerchHtml(exp,n){
+  const m=merchantMap(exp);
+  return top10Spend(m,n).map(([name,s],i)=>`
+    <div class="mi">
+      <div class="mrk ${rkCls(i)}">${i+1}</div>
+      <div style="flex:1;min-width:0"><div class="mn">${name}</div><div class="ms">${s.count} visits</div></div>
+      <div class="mv">${S(s.total)}</div>
+    </div>`).join('');
+}
+
+function accHtml(k,exp,isOpen,badge,label,sub){
+  const total=exp.reduce((s,e)=>s+e.amount,0);
+  const rows=exp.map(e=>`<tr>
+    <td class="td-t">${new Date(e.date).toLocaleDateString('en-SG',{day:'2-digit',month:'short'})} ${new Date(e.date).toLocaleTimeString('en-SG',{hour:'2-digit',minute:'2-digit'})}</td>
+    <td class="td-m">${e.merchant}</td><td>${pill(e.type)}</td>
+    <td class="td-a">${S(e.amount)}</td></tr>`).join('');
+  return `<div class="acc-item">
+    <div class="acc-hd ${isOpen?'open':''}" onclick="toggleAcc(this)">
+      <div class="acc-lft">${badge?`<div class="wk-badge ${badge}">${badge.replace('w','Week ')}</div>`:''}<div><div class="acc-lbl">${label}</div>${sub?`<div class="acc-rng">${sub}</div>`:''}</div></div>
+      <div class="acc-rgt"><span class="acc-cnt">${exp.length} tx</span><span class="acc-tot">${S(total)}</span><span class="acc-chev">▼</span></div>
+    </div>
+    <div class="acc-bd ${isOpen?'open':''}">
+      <table><thead><tr><th>Date & Time</th><th>Merchant</th><th>Type</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    </div></div>`;
+}
+
+// ── DAILY ─────────────────────────────────────────────────────────────────────
+function renderDaily(exp){
+  const grp={};
+  exp.forEach(e=>{const k=new Date(e.date).toISOString().slice(0,10);if(!grp[k])grp[k]=[];grp[k].push(e);});
+  const keys=Object.keys(grp).sort().reverse().slice(0,60);
+  const today=new Date().toISOString().slice(0,10);
+  const todayExp=grp[today]||[];
+  const todaySpent=todayExp.reduce((s,e)=>s+e.amount,0);
+  const pastKeys=keys.filter(k=>k!==today);
+  const avg=pastKeys.length?pastKeys.reduce((s,k)=>s+grp[k].reduce((a,e)=>a+e.amount,0),0)/pastKeys.length:0;
+
+  // Budget
+  const remaining=DAILY_BUDGET-todaySpent;
+  const pct=Math.min(todaySpent/DAILY_BUDGET*100,100);
+  const budgetColor=pct<70?'#10b981':pct<100?'#f59e0b':'#ef4444';
+  const remainColor=remaining>=0?'#10b981':'#ef4444';
+
+  // Chart last 14 days
+  const ck=[...keys].reverse().slice(-14);
+  const cl=ck.map(k=>new Date(k).toLocaleDateString('en-SG',{day:'2-digit',month:'short'}));
+  const cd=ck.map(k=>grp[k].reduce((s,e)=>s+e.amount,0));
+
+  // Accordion
+  const accHtmlStr=keys.slice(0,30).map((k,i)=>{
+    const d=new Date(k);
+    const lbl=d.toLocaleDateString('en-SG',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    return accHtml(k,grp[k],i===0,'',lbl,'');
+  }).join('');
+
+  const {labels:dl,data:dd,colors:dc}=typeBk(exp);
+
+  document.getElementById('view-daily').innerHTML=`
+    <div class="budget-card">
+      <div class="budget-left">
+        <div class="budget-title">Today's Budget — S$${DAILY_BUDGET}</div>
+        <div class="budget-nums">
+          <span class="budget-spent">${S(todaySpent)}</span>
+          <span class="budget-limit">/ S$${DAILY_BUDGET}.00</span>
+        </div>
+        <div class="budget-track"><div class="budget-fill" style="width:${pct}%;background:${budgetColor}"></div></div>
+      </div>
+      <div class="budget-right">
+        <div class="budget-remain-lbl">${remaining>=0?'Can still spend':'Over budget'}</div>
+        <div class="budget-remain-val" style="color:${remainColor}">${remaining>=0?S(remaining):S(Math.abs(remaining))}</div>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-ico">📅</div><div class="kpi-lbl">Today</div><div class="kpi-val">${S(todaySpent)}</div><div class="kpi-sub">${todayExp.length} transaction${todayExp.length!==1?'s':''}</div></div>
+      <div class="kpi a"><div class="kpi-ico">📊</div><div class="kpi-lbl">Daily Avg</div><div class="kpi-val">${S(avg)}</div><div class="kpi-sub">Excl. today · ${pastKeys.length} days</div></div>
+      <div class="kpi g"><div class="kpi-ico">🧾</div><div class="kpi-lbl">Total Tx</div><div class="kpi-val">${exp.length}</div><div class="kpi-sub">All time</div></div>
+      <div class="kpi b"><div class="kpi-ico">💳</div><div class="kpi-lbl">All Time</div><div class="kpi-val">${S(exp.reduce((s,e)=>s+e.amount,0))}</div><div class="kpi-sub">Since first tx</div></div>
+    </div>
+
+    <div class="row2">
+      <div class="panel"><div class="ph"><div class="pt">Last 14 Days</div><span class="pb">Bar</span></div><div class="cw"><canvas id="cd-bar"></canvas></div></div>
+      <div class="panel"><div class="ph"><div class="pt">By Type</div><span class="pb">Donut</span></div><div class="cw-sm"><canvas id="cd-donut"></canvas></div></div>
+    </div>
+    <div class="row2">
+      <div class="panel"><div class="ph"><div class="pt">Transactions by Day</div><span class="pb">${keys.length} days</span></div><div class="acc">${accHtmlStr||'<div class="empty">No data</div>'}</div></div>
+      <div class="panel"><div class="ph"><div class="pt">Top Merchants</div><span class="pb">All time</span></div><div class="ml">${topMerchHtml(exp,7)}</div></div>
+    </div>`;
+
+  barChart('cd-bar',cl,cd);
+  donut('cd-donut',dl,dd,dc);
+}
+
+// ── WEEKLY ────────────────────────────────────────────────────────────────────
+function renderWeekly(exp){
+  const grp={};
+  exp.forEach(e=>{const k=wkey(e.date);if(!grp[k])grp[k]=[];grp[k].push(e);});
+  const keys=Object.keys(grp).sort().reverse().slice(0,16);
+  const thisKey=wkey(new Date());
+  const thisExp=grp[thisKey]||[];
+  const thisTotal=thisExp.reduce((s,e)=>s+e.amount,0);
+  const past=keys.filter(k=>k!==thisKey);
+  const avg=past.length?past.reduce((s,k)=>s+grp[k].reduce((a,e)=>a+e.amount,0),0)/past.length:0;
+
+  const ck=[...keys].reverse().slice(-12);
+  const cl=ck.map(k=>{const[yw,wn]=k.split('-W');const[y,m]=yw.split('-');return new Date(+y,+m-1,1).toLocaleDateString('en-SG',{month:'short'})+' W'+wn;});
+  const cd=ck.map(k=>grp[k].reduce((s,e)=>s+e.amount,0));
+
+  const accStr=keys.map((k,i)=>{
+    const[yw,wn]=k.split('-W');const[y,m]=yw.split('-');const wn2=parseInt(wn);
+    const ranges={1:'1–7',2:'8–14',3:'15–21',4:'22–end'};
+    const mn=new Date(+y,+m-1,1).toLocaleDateString('en-SG',{month:'long',year:'numeric'});
+    return accHtml(k,grp[k],i===0,'w'+wn2,`Week ${wn2} — ${ranges[wn2]}`,mn);
+  }).join('');
+
+  const{labels:dl,data:dd,colors:dc}=typeBk(exp);
+
+  document.getElementById('view-weekly').innerHTML=`
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-ico">📆</div><div class="kpi-lbl">This Week</div><div class="kpi-val">${S(thisTotal)}</div><div class="kpi-sub">${thisExp.length} transactions</div></div>
+      <div class="kpi a"><div class="kpi-ico">📈</div><div class="kpi-lbl">Weekly Avg</div><div class="kpi-val">${S(avg)}</div><div class="kpi-sub">Excl. current · ${past.length} wks</div></div>
+      <div class="kpi g"><div class="kpi-ico">🗓</div><div class="kpi-lbl">Weeks Tracked</div><div class="kpi-val">${keys.length}</div><div class="kpi-sub">${new Set(keys.map(k=>k.slice(0,7))).size} months</div></div>
+      <div class="kpi b"><div class="kpi-ico">🏆</div><div class="kpi-lbl">Highest Week</div><div class="kpi-val">${S(Math.max(...keys.map(k=>grp[k].reduce((s,e)=>s+e.amount,0))))}</div><div class="kpi-sub">Peak</div></div>
+    </div>
+    <div class="row2">
+      <div class="panel"><div class="ph"><div class="pt">Weekly Spending</div><span class="pb">Last 12 weeks</span></div><div class="cw"><canvas id="cw-bar"></canvas></div></div>
+      <div class="panel"><div class="ph"><div class="pt">By Type</div><span class="pb">Donut</span></div><div class="cw-sm"><canvas id="cw-donut"></canvas></div></div>
+    </div>
+    <div class="panel" style="margin-bottom:16px"><div class="ph"><div class="pt">Weekly Breakdown</div><span class="pb">${keys.length} weeks</span></div><div class="acc">${accStr||'<div class="empty">No data</div>'}</div></div>`;
+
+  barChart('cw-bar',cl,cd);
+  donut('cw-donut',dl,dd,dc);
+}
+
+// ── MONTHLY ───────────────────────────────────────────────────────────────────
+function renderMonthly(exp){
+  const grp={};
+  exp.forEach(e=>{const k=mkey(e.date);if(!grp[k])grp[k]=[];grp[k].push(e);});
+  const keys=Object.keys(grp).sort().reverse().slice(0,12);
+  const thisKey=mkey(new Date());
+  const thisExp=grp[thisKey]||[];
+  const thisTotal=thisExp.reduce((s,e)=>s+e.amount,0);
+  const past=keys.filter(k=>k!==thisKey);
+  const avg=past.length?past.reduce((s,k)=>s+grp[k].reduce((a,e)=>a+e.amount,0),0)/past.length:0;
+  const totals=keys.map(k=>grp[k].reduce((s,e)=>s+e.amount,0));
+  const maxV=Math.max(...totals);
+
+  const ck=[...keys].reverse();
+  const cl=ck.map(k=>{const[y,m]=k.split('-');return new Date(+y,+m-1,1).toLocaleDateString('en-SG',{month:'short',year:'2-digit'});});
+  const cd=ck.map(k=>grp[k].reduce((s,e)=>s+e.amount,0));
+
+  const bars=keys.map(k=>{
+    const[y,m]=k.split('-');
+    const lbl=new Date(+y,+m-1,1).toLocaleDateString('en-SG',{month:'short',year:'numeric'});
+    const total=grp[k].reduce((s,e)=>s+e.amount,0);
+    const pct=maxV?(total/maxV*100).toFixed(1):0;
+    return`<div class="mbar-row"><div class="mbar-lbl">${lbl}</div><div class="mbar-track"><div class="mbar-fill" style="width:${pct}%"></div></div><div class="mbar-val">${S(total)}</div></div>`;
+  }).join('');
+
+  const{labels:dl,data:dd,colors:dc}=typeBk(exp);
+
+  document.getElementById('view-monthly').innerHTML=`
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-ico">🗓</div><div class="kpi-lbl">This Month</div><div class="kpi-val">${S(thisTotal)}</div><div class="kpi-sub">${thisExp.length} transactions</div></div>
+      <div class="kpi a"><div class="kpi-ico">📊</div><div class="kpi-lbl">Monthly Avg</div><div class="kpi-val">${S(avg)}</div><div class="kpi-sub">Excl. current · ${past.length} mo</div></div>
+      <div class="kpi g"><div class="kpi-ico">📉</div><div class="kpi-lbl">Lowest Month</div><div class="kpi-val">${S(Math.min(...past.map(k=>grp[k].reduce((s,e)=>s+e.amount,0))))}</div><div class="kpi-sub">Best so far</div></div>
+      <div class="kpi b"><div class="kpi-ico">📈</div><div class="kpi-lbl">Highest Month</div><div class="kpi-val">${S(maxV)}</div><div class="kpi-sub">Peak</div></div>
+    </div>
+    <div class="row2">
+      <div class="panel"><div class="ph"><div class="pt">Monthly Trend</div><span class="pb">Last 12 months</span></div><div class="cw"><canvas id="cm-bar"></canvas></div></div>
+      <div class="panel"><div class="ph"><div class="pt">By Type</div><span class="pb">Donut</span></div><div class="cw-sm"><canvas id="cm-donut"></canvas></div></div>
+    </div>
+    <div class="row2e">
+      <div class="panel"><div class="ph"><div class="pt">Month Comparison</div></div><div class="mbar">${bars}</div></div>
+      <div class="panel"><div class="ph"><div class="pt">Top Merchants</div><span class="pb">All time</span></div><div class="ml">${topMerchHtml(exp,7)}</div></div>
+    </div>`;
+
+  barChart('cm-bar',cl,cd);
+  donut('cm-donut',dl,dd,dc);
+}
+
+// ── SPENDIQ ───────────────────────────────────────────────────────────────────
+function renderInsights(exp){
+  if(!exp.length){document.getElementById('view-insights').innerHTML='<div class="empty">No data yet.</div>';return;}
+
+  // Health score
+  const allMK=[...new Set(exp.map(e=>mkey(e.date)))].sort();
+  const thisM=mkey(new Date());
+  const pastM=allMK.filter(k=>k!==thisM);
+  const pastT=pastM.map(k=>exp.filter(e=>mkey(e.date)===k).reduce((s,e)=>s+e.amount,0));
+
+  let tS=12;
+  if(pastT.length>=2){const l=pastT[pastT.length-1],p=pastT[pastT.length-2],ch=((l-p)/p)*100;tS=ch<-15?25:ch<-5?20:ch<5?15:ch<15?8:3;}
+  let cS=12;
+  if(pastT.length>=3){const mean=pastT.reduce((s,v)=>s+v,0)/pastT.length;const cv=Math.sqrt(pastT.reduce((s,v)=>s+(v-mean)**2,0)/pastT.length)/mean;cS=cv<0.1?25:cv<0.2?20:cv<0.35?14:cv<0.5?8:3;}
+  const dn=new Date().getDate();
+  const sdM=new Set(exp.filter(e=>mkey(e.date)===thisM).map(e=>new Date(e.date).getDate())).size;
+  const zS=Math.round((dn-sdM)/dn*25);
+  const mm=merchantMap(exp);
+  const hh=Object.values(mm).filter(s=>s.count>=5).length;
+  const hS=hh===0?25:hh<=2?20:hh<=4?14:hh<=7?8:3;
+  const score=tS+cS+zS+hS;
+  const sColor=score>=80?'#10b981':score>=60?'#f59e0b':'#ef4444';
+  const sLabel=score>=80?'Excellent':score>=60?'On Track':'Needs Attention';
+  const C=2*Math.PI*48;const dO=C*(1-score/100);
+
+  // MoM
+  const curT=exp.filter(e=>mkey(e.date)===thisM).reduce((s,e)=>s+e.amount,0);
+  const lastK=pastM[pastM.length-1];
+  const lastT=lastK?exp.filter(e=>mkey(e.date)===lastK).reduce((s,e)=>s+e.amount,0):0;
+  const momP=lastT?((curT-lastT)/lastT*100):0;
+  const momCls=momP>0?'trend-up':'trend-dn';
+  const momA=momP>0?'▲':'▼';
+  const lastLbl=lastK?new Date(lastK+'-01').toLocaleDateString('en-SG',{month:'short',year:'numeric'}):'—';
+
+  // Day of week
+  const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dt=Array(7).fill(0); exp.forEach(e=>dt[new Date(e.date).getDay()]+=e.amount);
+  const dmax=Math.max(...dt);
+  const dowC=['#cc0001','#3b82f6','#10b981','#f59e0b','#8b5cf6','#f97316','#ec4899'];
+  const dowH=DOW.map((d,i)=>`<div class="hbar-row"><div class="hbar-lbl">${d}</div><div class="hbar-track"><div class="hbar-fill" style="width:${dmax?(dt[i]/dmax*100).toFixed(0):0}%;background:${dowC[i]}"></div></div><div class="hbar-val">${S(dt[i])}</div></div>`).join('');
+
+  // Time of day
+  const sl={Morning:0,Afternoon:0,Evening:0,Night:0};
+  exp.forEach(e=>{const h=new Date(e.date).getHours();sl[h>=6&&h<12?'Morning':h>=12&&h<18?'Afternoon':h>=18&&h<22?'Evening':'Night']+=e.amount;});
+  const smax=Math.max(...Object.values(sl));
+  const slC={Morning:'#f59e0b',Afternoon:'#3b82f6',Evening:'#cc0001',Night:'#6366f1'};
+  const slI={Morning:'🌅',Afternoon:'☀️',Evening:'🌆',Night:'🌙'};
+  const slH=Object.entries(sl).map(([k,v])=>`<div class="hbar-row"><div class="hbar-lbl">${slI[k]} ${k}</div><div class="hbar-track"><div class="hbar-fill" style="width:${smax?(v/smax*100).toFixed(0):0}%;background:${slC[k]}"></div></div><div class="hbar-val">${S(v)}</div></div>`).join('');
+
+  // Spikes
+  const dm={};
+  exp.forEach(e=>{const k=new Date(e.date).toISOString().slice(0,10);if(!dm[k])dm[k]={total:0,top:null};dm[k].total+=e.amount;if(!dm[k].top||e.amount>dm[k].top.amount)dm[k].top=e;});
+  const spH=Object.entries(dm).sort((a,b)=>b[1].total-a[1].total).slice(0,10).map(([k,v])=>`
+    <div class="spike-row">
+      <div><div class="spike-date">${new Date(k).toLocaleDateString('en-SG',{weekday:'short',day:'2-digit',month:'short'})}</div><div class="spike-merch">${v.top.merchant} · ${S(v.top.amount)}</div></div>
+      <div class="spike-amt">${S(v.total)}</div>
+    </div>`).join('');
+
+  // Rolling avg
+  const sorted=[...exp].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const dtMap={};sorted.forEach(e=>{const k=new Date(e.date).toISOString().slice(0,10);dtMap[k]=(dtMap[k]||0)+e.amount;});
+  const dkeys=Object.keys(dtMap).sort().slice(-60);
+  const rl=dkeys.slice(13).map(k=>new Date(k).toLocaleDateString('en-SG',{day:'2-digit',month:'short'}));
+  const rd=dkeys.slice(13).map((k,i)=>{const w=dkeys.slice(i,i+14);return w.reduce((s,d)=>s+(dtMap[d]||0),0)/14;});
+
+  // Top 10
+  const f10=top10Freq(mm,10);
+  const s10=top10Spend(mm,10);
+  const totalSpend=exp.reduce((s,e)=>s+e.amount,0);
+  const totalM=Math.max(pastM.length,1);
+
+  const f10H=f10.map(([name,s],i)=>`<div class="t10-row"><div class="t10-rk ${rkCls(i)}">${i+1}</div><div class="t10-info"><div class="t10-name">${name}</div><div class="t10-sub">${s.count} visits · ${(s.count/totalM).toFixed(1)}/mo · S$${(s.total/s.count).toFixed(2)} avg</div></div><div class="t10-val">${S(s.total)}</div></div>`).join('');
+  const s10H=s10.map(([name,s],i)=>`<div class="t10-row"><div class="t10-rk ${rkCls(i)}">${i+1}</div><div class="t10-info"><div class="t10-name">${name}</div><div class="t10-sub">${s.count} visits · ${(s.total/totalSpend*100).toFixed(1)}% of total</div></div><div class="t10-val">${S(s.total)}</div></div>`).join('');
+
+  // Tips
+  const tips=f10.filter(([,s])=>s.count>=3).slice(0,4).map(([name,s])=>{
+    const avg=s.total/s.count,vpm=s.count/totalM;
+    return`<div class="tip-row"><div class="tip-ico">🏪</div><div><div class="tip-title">${name}</div><div class="tip-sub">${s.count} visits · S$${avg.toFixed(2)} avg · ~${vpm.toFixed(1)}/month</div><div class="tip-save">Cut 1 visit/mo → save ~${S(avg)}/month</div></div></div>`;
+  }).join('')||'<div class="empty">Visit 3+ times to generate tips.</div>';
+
+  document.getElementById('view-insights').innerHTML=`
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-ico">📊</div><div class="kpi-lbl">This Month</div><div class="kpi-val">${S(curT)}</div><div class="kpi-sub"><span class="${momCls}">${momA} ${Math.abs(momP).toFixed(1)}% vs ${lastLbl}</span></div></div>
+      <div class="kpi a"><div class="kpi-ico">📅</div><div class="kpi-lbl">Last Month</div><div class="kpi-val">${S(lastT)}</div><div class="kpi-sub">${lastLbl}</div></div>
+      <div class="kpi g"><div class="kpi-ico">🎯</div><div class="kpi-lbl">No-Spend Days</div><div class="kpi-val">${dn-sdM}</div><div class="kpi-sub">This month</div></div>
+      <div class="kpi b"><div class="kpi-ico">🔁</div><div class="kpi-lbl">Heavy Habits</div><div class="kpi-val">${hh}</div><div class="kpi-sub">Merchants 5+ visits</div></div>
+    </div>
+
+    <div class="row3">
+      <div class="panel">
+        <div class="ph"><div class="pt">Health Score</div><span class="pb" style="color:${sColor};background:${sColor}18">${sLabel}</span></div>
+        <div class="iq-score">
+          <div class="ring-wrap" style="position:relative;width:110px;height:110px;flex-shrink:0">
+            <svg width="110" height="110" viewBox="0 0 110 110">
+              <circle cx="55" cy="55" r="48" fill="none" stroke="#f3f4f6" stroke-width="10"/>
+              <circle cx="55" cy="55" r="48" fill="none" stroke="${sColor}" stroke-width="10"
+                stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${dO.toFixed(1)}" stroke-linecap="round"/>
+            </svg>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+              <div class="ring-num" style="color:${sColor}">${score}</div>
+              <div class="ring-tag">/100</div>
+            </div>
+          </div>
+          <div class="factors">
+            <div class="factor-row"><div class="factor-lbl">Trend</div><div class="factor-track"><div class="factor-fill" style="width:${tS/25*100}%;background:#10b981"></div></div><div class="factor-val">${tS}/25</div></div>
+            <div class="factor-row"><div class="factor-lbl">Consistency</div><div class="factor-track"><div class="factor-fill" style="width:${cS/25*100}%;background:#3b82f6"></div></div><div class="factor-val">${cS}/25</div></div>
+            <div class="factor-row"><div class="factor-lbl">No-Spend Days</div><div class="factor-track"><div class="factor-fill" style="width:${zS/25*100}%;background:#f59e0b"></div></div><div class="factor-val">${zS}/25</div></div>
+            <div class="factor-row"><div class="factor-lbl">Habit Control</div><div class="factor-track"><div class="factor-fill" style="width:${hS/25*100}%;background:#8b5cf6"></div></div><div class="factor-val">${hS}/25</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="pt">Day of Week</div><span class="scope">All ${exp.length} tx</span></div>
+        <div class="hbar">${dowH}</div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div class="pt">Time of Day</div><span class="scope">All ${exp.length} tx</span></div>
+        <div class="hbar">${slH}</div>
+      </div>
+    </div>
+
+    <div class="row2e">
+      <div class="panel"><div class="ph"><div class="pt">14-Day Rolling Avg</div><span class="pb blue">Trend</span></div><div class="cw"><canvas id="ci-line"></canvas></div></div>
+      <div class="panel"><div class="ph"><div class="pt">Highest Spending Days</div><span class="scope">All time · Top 10</span></div>${spH}</div>
+    </div>
+
+    <div class="row2e">
+      <div class="panel"><div class="ph"><div class="pt">🔢 Top 10 — Most Visited</div><span class="scope">All ${exp.length} tx</span></div>${f10H}</div>
+      <div class="panel"><div class="ph"><div class="pt">💸 Top 10 — Highest Spend</div><span class="scope">All ${exp.length} tx</span></div>${s10H}</div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <div class="ph"><div class="pt">💡 Saving Opportunities</div><span class="pb">Habits visited 3+ times</span></div>
+      ${tips}
+    </div>`;
+
+  lineChart('ci-line',rl,rd,'rgb(16,185,129)');
+}
+
+// ── TOGGLE / SWITCH ───────────────────────────────────────────────────────────
+function toggleAcc(h){h.classList.toggle('open');h.nextElementSibling.classList.toggle('open');}
+
+function switchTab(t){
+  tab=t;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('nav-'+t).classList.add('active');
+  ['daily','weekly','monthly','insights'].forEach(v=>document.getElementById('view-'+v).classList.toggle('hidden',v!==t));
+  document.getElementById('tb-title').textContent=TABS[t].title;
+  document.getElementById('tb-sub').textContent=TABS[t].sub;
+  renderAll(all);
+  closeSidebar();
+}
+
+function renderAll(exp){
+  renderDaily(exp);renderWeekly(exp);renderMonthly(exp);renderInsights(exp);
+  ['daily','weekly','monthly','insights'].forEach(v=>document.getElementById('view-'+v).classList.toggle('hidden',v!==tab));
+}
+
+function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('overlay').classList.add('show');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
+
+// ── LOAD ─────────────────────────────────────────────────────────────────────
+async function loadExpenses(){
+  try{
+    const res=await fetch('./expenses.json');
+    all=await res.json();
+    const now=new Date().toLocaleString('en-SG',{timeZone:'Asia/Singapore',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'});
+    document.getElementById('last-updated').textContent='Updated '+now;
+    if(!all.length){document.getElementById('view-daily').innerHTML='<div class="empty">No transactions yet — sync Gmail first.</div>';return;}
+    renderAll(all);
+  }catch(e){document.getElementById('view-daily').innerHTML='<div class="empty">Could not load expenses.json</div>';}
+}
+
+async function refreshData(){
+  const btn=document.getElementById('sync-btn'),icon=document.getElementById('sync-icon'),lbl=document.getElementById('sync-lbl');
+  btn.disabled=true;icon.textContent='⏳';lbl.textContent=' Syncing…';
+  try{
+    const res=await fetch('/api/refresh');
+    const d=await res.json();
+    if(d.success){await loadExpenses();icon.textContent='✓';lbl.textContent=' Done';}
+    else{icon.textContent='✗';lbl.textContent=' Error';}
+  }catch{icon.textContent='✗';lbl.textContent=' Error';}
+  setTimeout(()=>{btn.disabled=false;icon.textContent='↻';lbl.textContent=' Sync Gmail';},2500);
+}
+
+loadExpenses();
+</script>
+</body>
+</html>
