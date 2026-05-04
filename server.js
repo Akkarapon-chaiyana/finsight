@@ -3,6 +3,7 @@ const fs        = require('fs');
 const path      = require('path');
 const multer    = require('multer');
 const { parsePDF, mergeExpenses } = require('./parseBankStatement');
+const { authorize, fetchDBSEmails } = require('./fetchEmails');
 
 const app    = express();
 const PORT   = 5174;
@@ -20,6 +21,16 @@ app.get('/', (req, res) => {
 app.get('/expenses.json', (req, res) => {
   if (!fs.existsSync(EXPENSES_PATH)) return res.json([]);
   res.sendFile(EXPENSES_PATH);
+});
+
+app.get('/api/refresh', async (req, res) => {
+  try {
+    const auth = await authorize();
+    const expenses = await fetchDBSEmails(auth);
+    res.json({ success: true, count: expenses.length });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.post('/api/reset', (req, res) => {
