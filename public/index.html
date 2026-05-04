@@ -536,8 +536,8 @@ function renderMonthly(exp){
         const lbl=new Date(+y,+mo-1,1).toLocaleDateString('en-SG',{month:'long',year:'numeric'});
         const mExp=grp[k];
         const mTotal=mExp.reduce((s,e)=>s+e.amount,0);
-        const freqH=topFreqHtml(mExp,5);
-        const spendH=topMerchAccHtml(mExp,5);
+        const freqH=topFreqHtml(mExp,10);
+        const spendH=topMerchAccHtml(mExp,10);
         return`<div class="mbd-item">
           <div class="mbd-hd" onclick="this.parentElement.classList.toggle('open')">
             <div><div class="mbd-title">${lbl}</div><div class="mbd-meta">${mExp.length} transactions · ${S(mTotal)}</div></div>
