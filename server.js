@@ -33,6 +33,17 @@ app.get('/api/refresh', async (req, res) => {
   }
 });
 
+app.get('/api/load-demo', async (req, res) => {
+  try {
+    const buf  = fs.readFileSync(path.join(__dirname, 'public', 'demo-statement.pdf'));
+    const txns = await parsePDF(buf);
+    const result = mergeExpenses(txns);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post('/api/reset', (req, res) => {
   try {
     fs.writeFileSync(EXPENSES_PATH, '[]');

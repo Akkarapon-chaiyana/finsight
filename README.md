@@ -2,6 +2,27 @@
 
 A personal expense tracker that parses your DBS Consolidated Statement PDFs and displays them as a clean, mobile-friendly dashboard.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><b>Daily</b></td>
+    <td align="center"><b>Weekly</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/daily.png" width="200"/></td>
+    <td><img src="docs/screenshots/weekly.png" width="200"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Monthly</b></td>
+    <td align="center"><b>SpendIQ</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/monthly.png" width="200"/></td>
+    <td><img src="docs/screenshots/insights.png" width="200"/></td>
+  </tr>
+</table>
+
 ## Features
 
 - **Daily** — daily spending total, daily average, 21-day bar chart, top 25 merchants
@@ -28,6 +49,9 @@ Opens [http://localhost:5174](http://localhost:5174) automatically.
 
 ### 3. Upload your statements
 Click **Upload Statement** in the sidebar and select your DBS Consolidated Statement PDF(s). Multiple files can be uploaded at once.
+
+### 4. Try the demo
+Click **Load Demo** in the sidebar to explore the dashboard with a sample January 2026 statement.
 
 ## Updating Data
 
@@ -60,10 +84,13 @@ Click **Sync Current Month** in the sidebar.
 
 ```
 ├── fetchEmails.js          Gmail API fetcher (optional, current month only)
+├── generateDummyStatement.js  Generates docs/demo-statement.pdf for testing
 ├── parseBankStatement.js   DBS PDF statement parser
 ├── server.js               Express server (port 5174)
 ├── public/
-│   └── index.html          Dashboard
+│   ├── index.html          Dashboard
+│   └── demo-statement.pdf  Sample statement for demo
+├── docs/screenshots/       Dashboard screenshots
 ```
 
 ## Tech Stack
