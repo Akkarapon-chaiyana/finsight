@@ -3,5 +3,7 @@ token.json
 credentials.json
 debugEmails.js
 /expenses.json
+public/expenses.json
+public/login.html
 .env
 .DS_Store
