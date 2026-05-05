@@ -1,74 +1,74 @@
 # Finsight — DBS Personal Finance Dashboard
 
-A personal expense tracker that reads your DBS transaction emails from Gmail and displays them as a clean, mobile-friendly dashboard.
+A personal expense tracker that parses your DBS Consolidated Statement PDFs and displays them as a clean, mobile-friendly dashboard.
 
 ## Features
 
-- **Daily** — today's budget tracker (S$25 limit), spending by day with collapsible accordion
-- **Weekly** — grouped by Week 1–4 of each month
-- **Monthly** — month-over-month trend and comparison
-- **SpendIQ** — health score, day/time heatmaps, top 10 merchants by frequency & spend, saving tips
-- Auto-syncs Gmail daily at 6am (local server)
-- Fully responsive — works on mobile
+- **Daily** — daily spending total, daily average, 21-day bar chart, top 25 merchants
+- **Weekly** — week-by-week breakdown (W1–W4), spending trends
+- **Monthly** — month-over-month comparison, top 15 merchants, per-month frequency & spend breakdown
+- **SpendIQ** — financial health score, day/time heatmaps, saving tips
+- Upload multiple PDF statements at once
+- Optionally sync current month via Gmail (requires Google OAuth setup)
+- Data resets every time the server restarts — nothing is stored permanently
 
-## Local Setup
+## Setup
 
 ### 1. Install dependencies
 ```bash
 npm install
 ```
 
-### 2. Add Gmail credentials
-Place your Google OAuth `credentials.json` (Desktop app type) in the project root.
-[How to create one →](https://console.cloud.google.com/)
-
-### 3. Fetch emails (first time)
-```bash
-node fetchEmails.js
-```
-Open the printed URL, sign in with your Gmail, paste the auth code back. This saves `token.json` and writes `public/expenses.json`.
-
-### 4. Start the server
+### 2. Start the server
 ```bash
 node server.js
 ```
+
 Opens [http://localhost:5174](http://localhost:5174) automatically.
 
-## Update Data
+### 3. Upload your statements
+Click **Upload Statement** in the sidebar and select your DBS Consolidated Statement PDF(s). Multiple files can be uploaded at once.
 
-**Manually** — click **Sync Gmail** in the dashboard sidebar.  
-**Automatically** — the server re-fetches every day at 6am.
+## Updating Data
 
-## Deploy to Vercel (static)
+Each time you restart the server, data is cleared. Re-upload your PDFs to repopulate.
 
-The dashboard reads from `public/expenses.json` which is committed to the repo.
+**To add the current (incomplete) month**, set up Gmail sync below — it fetches transactions from your DBS email alerts.
 
+## Optional — Gmail Sync for Current Month
+
+This lets you pull the current month's transactions from your DBS email notifications.
+
+### 1. Create Google OAuth credentials
+- Go to [Google Cloud Console](https://console.cloud.google.com/)
+- Create a project → Enable **Gmail API**
+- Create **OAuth 2.0 Client ID** (Desktop app type)
+- Download as `credentials.json` and place it in the project root
+
+### 2. Authenticate (first time only)
 ```bash
-# 1. Fetch latest data locally
 node fetchEmails.js
-
-# 2. Commit updated data
-git add public/expenses.json
-git commit -m "update expenses"
-git push
 ```
+Follow the printed URL, sign in, paste the auth code back. This saves `token.json`.
 
-Vercel auto-deploys on every push. The Sync Gmail button only works locally.
+### 3. Use Sync Current Month
+Click **Sync Current Month** in the sidebar.
+
+> `credentials.json` and `token.json` are gitignored — they are yours only and never shared.
 
 ## Project Structure
 
 ```
-├── fetchEmails.js      Gmail API fetcher + DBS email parser
-├── server.js           Express server (port 5174) + daily cron
-├── vercel.json         Vercel static deployment config
+├── fetchEmails.js          Gmail API fetcher (optional, current month only)
+├── parseBankStatement.js   DBS PDF statement parser
+├── server.js               Express server (port 5174)
 ├── public/
-│   ├── index.html      Dashboard (Daily / Weekly / Monthly / SpendIQ)
-│   └── expenses.json   Parsed transaction data (committed to repo)
+│   └── index.html          Dashboard
 ```
 
 ## Tech Stack
 
 - **Frontend** — Vanilla JS, Chart.js, Inter font
-- **Backend** — Node.js, Express, node-cron
-- **Email** — Gmail API (googleapis)
-- **Deploy** — Vercel (static)
+- **Backend** — Node.js, Express
+- **PDF Parsing** — pdf-parse
+- **Email** — Gmail API (optional)
